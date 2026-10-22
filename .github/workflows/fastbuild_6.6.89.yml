@@ -346,8 +346,8 @@ jobs:
           patch -p1 -F 3 < lz4kd.patch || true
 
       - name: 绕过 BakaSU/SukiSU 的 SUSFS 兼容性强制检查
-        if: inputs.enable_susfs && inputs.ksu_mode != '禁用KSU' && (startsWith(inputs.ksu_variant, 'sukisu') || inputs.ksu_variant == 'bakasu')
-        working-directory: ${{ env.KERNEL_ROOT }}
+        if: inputs.susfs_enable && (inputs.ksu_type == 'sukisu' || inputs.ksu_type == 'bakasu')
+        working-directory: kernel_workspace
         run: |
           COMPAT_FILE="./KernelSU/kernel/tools/susfs_compat.mk"
           if [ ! -f "$COMPAT_FILE" ]; then
