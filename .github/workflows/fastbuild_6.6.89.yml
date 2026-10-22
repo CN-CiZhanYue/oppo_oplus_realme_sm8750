@@ -344,20 +344,25 @@ jobs:
           cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto
           cp ../SukiSU_patch/other/zram/zram_patch/${{ env.KERNEL_VERSION }}/lz4kd.patch ./
           patch -p1 -F 3 < lz4kd.patch || true
-      - name: 绕过 BakaSU SUSFS 兼容性强制检查
-        if: inputs.susfs_enable && (github.event.inputs.ksu_type == 'bakasu' || github.event.inputs.ksu_type == 'sukisu')
+
+      - name: 绕过 BakaSU/SukiSU 的 SUSFS 兼容性强制检查
+        if: inputs.enable_susfs && inputs.ksu_mode != '禁用KSU' && (startsWith(inputs.ksu_variant, 'sukisu') || inputs.ksu_variant == 'bakasu')
+        working-directory: ${{ env.KERNEL_ROOT }}
         run: |
-          cd kernel_workspace
           COMPAT_FILE="./KernelSU/kernel/tools/susfs_compat.mk"
-          if [ -f "$COMPAT_FILE" ]; then
-            echo "检测到 susfs_compat.mk，正在移除强制停止检查..."
-            # 删除那三行强制 error 的内容
+          if [ ! -f "$COMPAT_FILE" ]; then
+            echo "未找到 $COMPAT_FILE，跳过"
+            exit 0
+          fi
+        
+          if grep -q 'susfs has NOT update with latest KernelSU source' "$COMPAT_FILE"; then
+            echo "检测到 susfs_compat.mk 的强制停止检查，正在移除..."
             sed -i '/susfs has NOT update with latest KernelSU source/,+2d' "$COMPAT_FILE"
-            echo "已成功绕过 BakaSU 的 SUSFS 等待检查"
-            # 可选：显示修改后的内容确认
+            echo "已绕过 BakaSU/SukiSU 的 SUSFS 等待检查"
+            echo "------ 修改后尾部 10 行 ------"
             tail -10 "$COMPAT_FILE"
           else
-            echo "未找到 susfs_compat.mk，跳过"
+            echo "susfs_compat.mk 中未找到目标字符串（上游可能已修复），跳过"
           fi
           
       - name: 添加SUSFS 配置项
